@@ -18,8 +18,8 @@ dtbs:
 	$(DTC_DIR)/dtc -@ -I dts -O dtb -o rpi-es9018k2m-dac-overlay.dtb rpi-es9018k2m-dac-overlay.dts
 
 modules_install:
-	$(INSTALL) -m 0644 es9018k2m.ko     	/lib/modules/$(shell uname -r)/kernel/sound/soc/codecs/
-	$(INSTALL) -n 0644 rpi-es9018k2m-dac.ko /lib/modules/$(shell uname -r)/kernel/sound/soc/bcm/
+	install -m 0644 es9018k2m.ko     	/lib/modules/$(shell uname -r)/kernel/sound/soc/codecs/
+	install -m 0644 rpi-es9018k2m-dac.ko /lib/modules/$(shell uname -r)/kernel/sound/soc/bcm/
 	depmod -a
 
 modules_remove:
@@ -27,7 +27,7 @@ modules_remove:
 	rm /lib/modules/$(shell uname -r)/kernel/sound/soc/bcm/rpi-es9018k2m-dac.ko 
 	depmod -a
 
-install:
+install: all modules_install dtbs install_dtb
 	modprobe es9018k2m
 	modprobe rpi-es9018k2m-dac
 
@@ -40,4 +40,4 @@ install_dtb:
 	cp rpi-es9018k2m-dac-overlay.dtb /boot/overlays/
 
 remove_dtb:
-	rm /boot/overlays/sabreberry32-overlay.dtb
+	rm /boot/overlays/rpi-es9018k2m-dac-overlay.dtb

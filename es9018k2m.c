@@ -27,14 +27,6 @@
 
 #define SABRE9018C2M_REG_64 0x40 // Register #64
 
-
-/*
- * struct es9018k2m_priv {
-	struct regmap *regmap;
-	unsigned int fmt;
-};
-*/
-
 struct es9018k2m_priv {
     struct regmap *regmap;
     unsigned int fmt;
@@ -103,47 +95,6 @@ static bool es9018k2m_volatile(struct device *dev, unsigned int reg)
 	return false;
 }
 
-/*
-static int es9018k2m_mute(struct snd_soc_dai *dai, int mute)
-{
-	if(mute)
-	{
-		if(!SABRE9018Q2C_isMuted)
-		{
-			SABRE9018Q2C_VOLUME1 = snd_soc_read(dai->codec, ES9018K2M_VOLUME1);
-			SABRE9018Q2C_VOLUME2 = snd_soc_read(dai->codec, ES9018K2M_VOLUME2);
-			SABRE9018Q2C_isMuted = true;
-		}
-		snd_soc_write(dai->codec, ES9018K2M_VOLUME1, 0xFF);
-		snd_soc_write(dai->codec, ES9018K2M_VOLUME2, 0xFF);
-	}
-	return 0;
-}
-*/
-
-/*
-static int es9018k2m_mute(struct snd_soc_dai *dai, int mute)
-{
-    struct snd_soc_codec *codec = dai->codec;
-    struct es9018k2m_priv *es9018k2m = snd_soc_codec_get_drvdata(codec);
-
-    if (mute) {
-        if (!es9018k2m->is_muted) {
-            es9018k2m->volume1 = snd_soc_read(codec, ES9018K2M_VOLUME1);
-            es9018k2m->volume2 = snd_soc_read(codec, ES9018K2M_VOLUME2);
-            es9018k2m->is_muted = true;
-        }
-        snd_soc_write(codec, ES9018K2M_VOLUME1, 0xFF);
-        snd_soc_write(codec, ES9018K2M_VOLUME2, 0xFF);
-    } else {
-        snd_soc_write(codec, ES9018K2M_VOLUME1, es9018k2m->volume1);
-        snd_soc_write(codec, ES9018K2M_VOLUME2, es9018k2m->volume2);
-        es9018k2m->is_muted = false;
-    }
-    return 0;
-}
-*/
-
 static int es9018k2m_mute(struct snd_soc_dai *dai, int mute)
 {
     struct snd_soc_component *component = dai->component;
@@ -183,15 +134,6 @@ static int es9018k2m_mute(struct snd_soc_dai *dai, int mute)
     }
     return 0;
 }
-/*
-static int es9018k2m_unmute(struct snd_soc_dai *dai)
-{
-	snd_soc_write(dai->codec, ES9018K2M_VOLUME1, SABRE9018Q2C_VOLUME1);
-	snd_soc_write(dai->codec, ES9018K2M_VOLUME2, SABRE9018Q2C_VOLUME2);
-	SABRE9018Q2C_isMuted = false;
-	return 0;
-}
-*/
 
 static int es9018k2m_unmute(struct snd_soc_dai *dai)
 {
@@ -243,30 +185,6 @@ static const struct snd_pcm_hw_constraint_list constraints_slave = {
 	.count = ARRAY_SIZE(es9018k2m_dai_rates_slave),
 };
 
-/*
-static int es9018k2m_dai_startup_master(
-		struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
-{
-	struct snd_soc_codec *codec = dai->codec;
-	int ret;
-
-	ret = snd_pcm_hw_constraint_list(substream->runtime,
-			0, SNDRV_PCM_HW_PARAM_RATE, &constraints_master);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to setup rates constraints: %d\n", ret);
-		return ret;
-	}
-
-	ret = snd_pcm_hw_constraint_mask64(substream->runtime,
-			SNDRV_PCM_HW_PARAM_FORMAT, SNDRV_PCM_FMTBIT_S32_LE);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to setup format constraints: %d\n", ret);
-	}
-
-	return ret;
-}
-*/
-
 static int es9018k2m_dai_startup_master(
         struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
 {
@@ -289,23 +207,6 @@ static int es9018k2m_dai_startup_master(
     return ret;
 }
 
-/*
-static int es9018k2m_dai_startup_slave(
-		struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
-{
-	struct snd_soc_codec *codec = dai->codec;
-	int ret;
-
-	ret = snd_pcm_hw_constraint_list(substream->runtime,
-			0, SNDRV_PCM_HW_PARAM_RATE, &constraints_slave);
-	if (ret != 0) {
-		dev_err(codec->dev, "Failed to setup rates constraints: %d\n", ret);
-	}
-
-	return ret;
-}
-*/
-
 static int es9018k2m_dai_startup_slave(
         struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
 {
@@ -320,27 +221,6 @@ static int es9018k2m_dai_startup_slave(
 
     return ret;
 }
-
-/*
-static int es9018k2m_dai_startup(
-		struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
-{
-	struct snd_soc_codec     *codec = dai->codec;
-	struct es9018k2m_priv *es9018k2m
-					= snd_soc_codec_get_drvdata(codec);
-	es9018k2m_mute(dai, 1);
-	switch (es9018k2m->fmt & SND_SOC_DAIFMT_MASTER_MASK) {
-	case SND_SOC_DAIFMT_CBM_CFM:
-		return es9018k2m_dai_startup_master(substream, dai);
-
-	case SND_SOC_DAIFMT_CBS_CFS:
-		return es9018k2m_dai_startup_slave(substream, dai);
-
-	default:
-		return (-EINVAL);
-	}
-}
-*/
 
 static int es9018k2m_dai_startup(
                 struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
@@ -366,34 +246,6 @@ static int es9018k2m_dai_startup(
         return -EINVAL;
     }
 }
-
-/*
-static int es9018k2m_hw_params(
-	struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params,
-	struct snd_soc_dai *dai)
-{
-	struct snd_soc_codec *codec = dai->codec;
-
-	uint8_t iface = snd_soc_read(codec, ES9018K2M_INPUT_CONFIG) & 0x3f;
-
-	switch (params_format(params)) {
-		case SNDRV_PCM_FORMAT_S16_LE:
-			iface |= 0x0;
-			break;
-		case SNDRV_PCM_FORMAT_S24_LE:
-			iface |= 0x80;
-			break;
-		case SNDRV_PCM_FORMAT_S32_LE:
-			iface |= 0x80;
-			break;
-		default:
-			return -EINVAL;
-	}
-
-	snd_soc_write(codec, ES9018K2M_INPUT_CONFIG, iface);
-	return 0;
-}
-*/
 
 static int es9018k2m_hw_params(
         struct snd_pcm_substream *substream, struct snd_pcm_hw_params *params,
@@ -429,35 +281,6 @@ static int es9018k2m_hw_params(
     return 0;
 }
 
-/*
-static int es9018k2m_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
-{
-	struct snd_soc_codec      *codec = dai->codec;
-	struct es9018k2m_priv *es9018k2m
-					= snd_soc_codec_get_drvdata(codec);
-
-	// interface format 
-	switch (fmt & SND_SOC_DAIFMT_FORMAT_MASK) {
-	case SND_SOC_DAIFMT_I2S:
-		break;
-
-	case SND_SOC_DAIFMT_RIGHT_J:
-	case SND_SOC_DAIFMT_LEFT_J:
-	default:
-		return (-EINVAL);
-	}
-
-	// clock inversion 
-	if ((fmt & SND_SOC_DAIFMT_INV_MASK) != SND_SOC_DAIFMT_NB_NF) {
-		return (-EINVAL);
-	}
-
-	// Set Audio Data Format 
-	es9018k2m->fmt = fmt;
-
-	return 0;
-}
-*/
 static int es9018k2m_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 {
     struct snd_soc_component *component = dai->component;
@@ -518,16 +341,7 @@ static int es9018k2m_dai_trigger(struct snd_pcm_substream *substream, int cmd, s
 	}
 	return ret;
 }
-/*
-static const struct snd_soc_dai_ops es9018k2m_dai_ops = {
-	.startup      = es9018k2m_dai_startup,
-	.hw_params    = es9018k2m_hw_params,
-	.digital_mute = es9018k2m_mute,
-	.set_fmt 	  = es9018k2m_set_fmt,
-	.shutdown	  = es9018k2m_shutdown,
-	.trigger	  = es9018k2m_dai_trigger,
-};
-*/
+
 static const struct snd_soc_dai_ops es9018k2m_dai_ops = {
     .startup   = es9018k2m_dai_startup,
     .hw_params = es9018k2m_hw_params,
@@ -552,15 +366,6 @@ static struct snd_soc_dai_driver es9018k2m_dai = {
 	.ops = &es9018k2m_dai_ops,
 };
 
-/*
-static struct snd_soc_codec_driver es9018k2m_codec_driver = {
-	.component_driver = {
-		.controls         = es9018k2m_controls,
-		.num_controls     = ARRAY_SIZE(es9018k2m_controls),
-	}
-};
-*/
-
 static struct snd_soc_component_driver es9018k2m_component_driver = {
     .controls         = es9018k2m_controls,
     .num_controls     = ARRAY_SIZE(es9018k2m_controls),
@@ -583,21 +388,6 @@ static const struct regmap_config es9018k2m_regmap = {
 	.cache_type       = REGCACHE_RBTREE,
 };
 
-/*
-bool es9018k2m_check_chip_id(struct snd_soc_codec *codec)
-{
-	//
-	//unsigned int value;
-
-	//value = snd_soc_read(codec, SABRE9018Q2C_REG_64);
-
-	//if (((value & 0x1C) >> 2) != 0) {
-	//	return false;
-	//}
-	return true;
-}
-*/
-
 bool es9018k2m_check_chip_id(struct snd_soc_component *component)
 {
     int ret, chip_id;
@@ -619,32 +409,6 @@ bool es9018k2m_check_chip_id(struct snd_soc_component *component)
 
 EXPORT_SYMBOL_GPL(es9018k2m_check_chip_id);
 
-/*
-static int es9018k2m_probe(struct device *dev, struct regmap *regmap)
-{
-	struct es9018k2m_priv *es9018k2m;
-	int ret;
-
-	es9018k2m = devm_kzalloc(dev, sizeof(*es9018k2m), GFP_KERNEL);
-	if (!es9018k2m) {
-		dev_err(dev, "devm_kzalloc");
-		return (-ENOMEM);
-	}
-
-	es9018k2m->regmap = regmap;
-
-	dev_set_drvdata(dev, es9018k2m);
-
-	ret = snd_soc_register_codec(dev,
-			&es9018k2m_codec_driver, &es9018k2m_dai, 1);
-	if (ret != 0) {
-		dev_err(dev, "Failed to register CODEC: %d\n", ret);
-		return ret;
-	}
-
-	return 0;
-}
-*/
 static int es9018k2m_probe(struct device *dev, struct regmap *regmap)
 {
     struct es9018k2m_priv *es9018k2m;
@@ -669,12 +433,6 @@ static int es9018k2m_probe(struct device *dev, struct regmap *regmap)
     return 0;
 }
 
-/*
-static void es9018k2m_remove(struct device *dev)
-{
-	snd_soc_unregister_codec(dev);
-}
-*/
 static void es9018k2m_remove(struct device *dev)
 {
     snd_soc_unregister_component(dev);
@@ -712,18 +470,6 @@ static const struct of_device_id es9018k2m_of_match[] = {
 	{ }
 };
 MODULE_DEVICE_TABLE(of, es9018k2m_of_match);
-/*
-static struct i2c_driver es9018k2m_i2c_driver = {
-	.driver = {
-		.name           = "es9018k2m-i2c",
-		.owner          = THIS_MODULE,
-		.of_match_table = of_match_ptr(es9018k2m_of_match),
-	},
-	.probe    = es9018k2m_i2c_probe,
-	.remove   = es9018k2m_i2c_remove,
-	.id_table = es9018k2m_i2c_id,
-};
-*/
 static struct i2c_driver es9018k2m_i2c_driver = {
     .driver = {
         .name = "es9018k2m-i2c",
@@ -736,6 +482,6 @@ static struct i2c_driver es9018k2m_i2c_driver = {
 module_i2c_driver(es9018k2m_i2c_driver);
 
 
-MODULE_DESCRIPTION("ASoC SABRE9018Q2C codec driver");
-MODULE_AUTHOR("Satoru Kawase <satoru.kawase@gmail.com>");
+MODULE_DESCRIPTION("AIODE DAC II codec driver");
+MODULE_AUTHOR("Simon B <simonb@kaizo.org>, Satoru Kawase <satoru.kawase@gmail.com>");
 MODULE_LICENSE("GPL");
