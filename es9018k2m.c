@@ -188,6 +188,7 @@ static const struct snd_pcm_hw_constraint_list constraints_slave = {
 static int es9018k2m_dai_startup_master(
         struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
 {
+    //printk(KERN_INFO "Message: in es9018k2m_dai_startup_master");
     struct snd_soc_component *component = dai->component;
     int ret;
 
@@ -225,6 +226,7 @@ static int es9018k2m_dai_startup_slave(
 static int es9018k2m_dai_startup(
                 struct snd_pcm_substream *substream, struct snd_soc_dai *dai)
 {
+	//printk(KERN_INFO "Message es9018k2m_dai_startup");
     struct snd_soc_component *component = dai->component;
     struct es9018k2m_priv *es9018k2m = snd_soc_component_get_drvdata(component);
 
@@ -390,10 +392,12 @@ static const struct regmap_config es9018k2m_regmap = {
 
 bool es9018k2m_check_chip_id(struct snd_soc_component *component)
 {
+	//printk(KERN_INFO "Message es9018k2m_check_chip_id");
     int ret, chip_id;
 
     ret = snd_soc_component_read(component, SABRE9018C2M_REG_64);
     if (ret < 0) {
+	    //printk(KERN_INFO "Failed to read chip ID\n");
         dev_err(component->dev, "Failed to read chip ID\n");
         return false;
     }
@@ -411,6 +415,7 @@ EXPORT_SYMBOL_GPL(es9018k2m_check_chip_id);
 
 static int es9018k2m_probe(struct device *dev, struct regmap *regmap)
 {
+	//printk(KERN_INFO "Message es9018k2m_probe");
     struct es9018k2m_priv *es9018k2m;
     int ret;
 
@@ -443,6 +448,7 @@ static void es9018k2m_remove(struct device *dev)
 static int es9018k2m_i2c_probe(
 		struct i2c_client *i2c, const struct i2c_device_id *id)
 {
+	//printk(KERN_INFO "Message es9018k2m_i2c_probe");
 	struct regmap *regmap;
 
 	regmap = devm_regmap_init_i2c(i2c, &es9018k2m_regmap);
