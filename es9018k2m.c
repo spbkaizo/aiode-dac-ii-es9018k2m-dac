@@ -19,6 +19,7 @@
 #include <linux/module.h>
 #include <linux/regmap.h>
 #include <linux/i2c.h>
+#include <linux/workqueue.h>
 #include <sound/soc.h>
 #include <sound/pcm_params.h>
 #include <sound/tlv.h>
@@ -33,11 +34,10 @@ struct es9018k2m_priv {
     uint8_t volume1;
     uint8_t volume2;
     bool is_muted;
+    struct delayed_work unmute_work;
+    struct snd_soc_dai *dai;
 };
 
-uint8_t SABRE9018Q2C_VOLUME1;
-uint8_t SABRE9018Q2C_VOLUME2;
-bool SABRE9018Q2C_isMuted;
 /* SABRE9018Q2C Default Register Value */
 static const struct reg_default es9018k2m_reg_defaults[] = {
 	{ 0, 0x00 },
@@ -318,23 +318,48 @@ static int es9018k2m_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 
 static void es9018k2m_shutdown(struct snd_pcm_substream * substream, struct snd_soc_dai *dai)
 {
+	struct snd_soc_component *component = dai->component;
+	struct es9018k2m_priv *es9018k2m = snd_soc_component_get_drvdata(component);
+
+	/* Cancel any pending unmute work */
+	if (es9018k2m)
+		cancel_delayed_work_sync(&es9018k2m->unmute_work);
+
 	es9018k2m_mute(dai, 1);
+}
+
+static void es9018k2m_unmute_work_handler(struct work_struct *work)
+{
+	struct es9018k2m_priv *es9018k2m =
+		container_of(work, struct es9018k2m_priv, unmute_work.work);
+
+	if (es9018k2m && es9018k2m->dai)
+		es9018k2m_unmute(es9018k2m->dai);
 }
 
 static int es9018k2m_dai_trigger(struct snd_pcm_substream *substream, int cmd, struct snd_soc_dai *dai)
 {
+	struct snd_soc_component *component = dai->component;
+	struct es9018k2m_priv *es9018k2m = snd_soc_component_get_drvdata(component);
 	int ret = 0;
+
+	if (!es9018k2m)
+		return -EINVAL;
+
 	switch(cmd)
 	{
 		case SNDRV_PCM_TRIGGER_START:
 		case SNDRV_PCM_TRIGGER_RESUME:
 		case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-			mdelay(1500);
-			es9018k2m_unmute(dai);
+			/* Schedule unmute after 1.5 seconds instead of blocking */
+			es9018k2m->dai = dai;
+			schedule_delayed_work(&es9018k2m->unmute_work, msecs_to_jiffies(1500));
 			break;
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+			/* Cancel any pending unmute work */
+			cancel_delayed_work_sync(&es9018k2m->unmute_work);
 			es9018k2m_mute(dai, 1);
 			break;
 		default:
@@ -426,10 +451,11 @@ static int es9018k2m_probe(struct device *dev, struct regmap *regmap)
     }
 
     es9018k2m->regmap = regmap;
+    INIT_DELAYED_WORK(&es9018k2m->unmute_work, es9018k2m_unmute_work_handler);
     dev_set_drvdata(dev, es9018k2m);
 
-    ret = snd_soc_register_component(dev, &es9018k2m_component_driver,
-                                     &es9018k2m_dai, 1);
+    ret = devm_snd_soc_register_component(dev, &es9018k2m_component_driver,
+                                          &es9018k2m_dai, 1);
     if (ret != 0) {
         dev_err(dev, "Failed to register component: %d\n", ret);
         return ret;
@@ -440,13 +466,15 @@ static int es9018k2m_probe(struct device *dev, struct regmap *regmap)
 
 static void es9018k2m_remove(struct device *dev)
 {
-    snd_soc_unregister_component(dev);
+    struct es9018k2m_priv *es9018k2m = dev_get_drvdata(dev);
+
+    if (es9018k2m)
+        cancel_delayed_work_sync(&es9018k2m->unmute_work);
 }
 
 
 
-static int es9018k2m_i2c_probe(
-		struct i2c_client *i2c, const struct i2c_device_id *id)
+static int es9018k2m_i2c_probe(struct i2c_client *i2c)
 {
 	//printk(KERN_INFO "Message es9018k2m_i2c_probe");
 	struct regmap *regmap;
