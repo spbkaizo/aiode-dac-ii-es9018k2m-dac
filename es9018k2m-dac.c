@@ -134,14 +134,17 @@ static int snd_rpi_es9018k2m_dac_probe(struct platform_device *pdev)
             dai->platforms->name = NULL;
 
             dai->dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_CBS_CFS;
+
+            /* Release the device tree node reference */
+            of_node_put(i2s_node);
         } else {
             dev_err(&pdev->dev, "Property 'i2s-controller' missing or invalid\n");
             return -EINVAL;
         }
     }
 
-    mdelay(50);
-    ret = snd_soc_register_card(&snd_rpi_es9018k2m_dac);
+    msleep(50);
+    ret = devm_snd_soc_register_card(&pdev->dev, &snd_rpi_es9018k2m_dac);
     if (ret) {
         dev_err(&pdev->dev, "snd_soc_register_card() failed: %d\n", ret);
     }
@@ -152,7 +155,7 @@ static int snd_rpi_es9018k2m_dac_probe(struct platform_device *pdev)
 
 static int snd_rpi_es9018k2m_dac_remove(struct platform_device *pdev)
 {
-	snd_soc_unregister_card(&snd_rpi_es9018k2m_dac);
+	/* Card is automatically unregistered by devm */
 	return 0;
 }
 
@@ -165,7 +168,6 @@ MODULE_DEVICE_TABLE(of, snd_rpi_es9018k2m_dac_of_match);
 static struct platform_driver snd_rpi_es9018k2m_dac_driver = {
         .driver = {
                 .name   = "es9018k2m-dac",
-                .owner  = THIS_MODULE,
                 .of_match_table = snd_rpi_es9018k2m_dac_of_match,
         },
         .probe          = snd_rpi_es9018k2m_dac_probe,
