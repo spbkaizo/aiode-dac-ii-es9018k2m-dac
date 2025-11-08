@@ -332,9 +332,20 @@ static void es9018k2m_unmute_work_handler(struct work_struct *work)
 {
 	struct es9018k2m_priv *es9018k2m =
 		container_of(work, struct es9018k2m_priv, unmute_work.work);
+	struct snd_soc_dai *dai;
+	struct snd_soc_component *component;
 
-	if (es9018k2m && es9018k2m->dai)
-		es9018k2m_unmute(es9018k2m->dai);
+	/* Validate that dai and component are still valid */
+	dai = es9018k2m->dai;
+	if (!dai)
+		return;
+
+	component = dai->component;
+	if (!component)
+		return;
+
+	/* Unmute the DAC after the delay */
+	es9018k2m_unmute(dai);
 }
 
 static int es9018k2m_dai_trigger(struct snd_pcm_substream *substream, int cmd, struct snd_soc_dai *dai)
@@ -358,8 +369,8 @@ static int es9018k2m_dai_trigger(struct snd_pcm_substream *substream, int cmd, s
 		case SNDRV_PCM_TRIGGER_STOP:
 		case SNDRV_PCM_TRIGGER_SUSPEND:
 		case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-			/* Cancel any pending unmute work */
-			cancel_delayed_work_sync(&es9018k2m->unmute_work);
+			/* Cancel pending unmute (non-blocking, we're in atomic context) */
+			cancel_delayed_work(&es9018k2m->unmute_work);
 			es9018k2m_mute(dai, 1);
 			break;
 		default:
@@ -451,6 +462,9 @@ static int es9018k2m_probe(struct device *dev, struct regmap *regmap)
     }
 
     es9018k2m->regmap = regmap;
+    es9018k2m->volume1 = 0x80;  /* Default volume from reg_defaults */
+    es9018k2m->volume2 = 0x80;  /* Default volume from reg_defaults */
+    es9018k2m->is_muted = false;
     INIT_DELAYED_WORK(&es9018k2m->unmute_work, es9018k2m_unmute_work_handler);
     dev_set_drvdata(dev, es9018k2m);
 
